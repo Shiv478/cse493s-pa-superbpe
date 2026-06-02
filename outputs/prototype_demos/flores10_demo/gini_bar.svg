@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="24" y="36" font-family="Arial" font-size="22" font-weight="700">Cross-lingual compression disparity</text>
+<text x="24" y="60" font-family="Arial" font-size="13" fill="#555">Lower Gini is more equitable across languages.</text>
+<text x="24" y="108.2" font-family="Arial" font-size="14">parity_bpe</text>
+<rect x="140" y="86.0" width="49.5" height="34.1" fill="#2563eb" rx="3"/>
+<text x="197.5" y="108.2" font-family="Arial" font-size="13">0.0079</text>
+<text x="24" y="163.2" font-family="Arial" font-size="14">pa_superbpe</text>
+<rect x="140" y="141.0" width="71.3" height="34.1" fill="#059669" rx="3"/>
+<text x="219.3" y="163.2" font-family="Arial" font-size="13">0.0114</text>
+<text x="24" y="218.2" font-family="Arial" font-size="14">bpe</text>
+<rect x="140" y="196.0" width="445.4" height="34.1" fill="#d97706" rx="3"/>
+<text x="593.4" y="218.2" font-family="Arial" font-size="13">0.0714</text>
+<text x="24" y="273.2" font-family="Arial" font-size="14">superbpe</text>
+<rect x="140" y="251.0" width="580.0" height="34.1" fill="#7c3aed" rx="3"/>
+<text x="728.0" y="273.2" font-family="Arial" font-size="13">0.0930</text>
+</svg>

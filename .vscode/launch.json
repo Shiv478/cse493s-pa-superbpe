@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run PA-SuperBPE smoke experiment",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/run_experiment.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--data",
+        "data/sample_multilingual.jsonl",
+        "--out",
+        "outputs/smoke"
+      ]
+    }
+  ]
+}
+

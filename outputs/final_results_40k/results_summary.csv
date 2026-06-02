@@ -1,0 +1,5 @@
+method,mean_tokens_per_char,gini_tokens_per_char,maxmin_tokens_per_char,gini_token_count,maxmin_token_count
+BPE,0.4561,0.3063,4.855,0.1142,2.272
+SuperBPE,0.4141,0.235,3.699,0.0966,1.917
+PA-BPE,0.4061,0.237,3.56,0.0051,1.027
+PA-SuperBPE,0.427,0.2356,3.564,0.0043,1.023

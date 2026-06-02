@@ -1,0 +1,3 @@
+# Runtime dependencies are intentionally empty.
+# The scaffold runs with Python 3.9+ standard library only.
+

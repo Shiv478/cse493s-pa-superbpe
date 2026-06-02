@@ -1,0 +1,5 @@
+method,mean_tokens_per_char,gini,max_min_ratio,eng_Latn_tokens_per_char
+parity_bpe,0.932396,0.007943,1.045657,0.913470
+pa_superbpe,0.911242,0.011440,1.070305,0.906347
+bpe,0.856604,0.071439,1.388745,0.733325
+superbpe,0.810374,0.093027,1.565978,0.658806

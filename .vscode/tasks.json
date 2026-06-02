@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup Python environment",
+      "type": "shell",
+      "command": "make setup",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run smoke experiment",
+      "type": "shell",
+      "command": "make smoke",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Prepare FLORES train/test data",
+      "type": "shell",
+      "command": "make prepare-flores",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run real FLORES train/test",
+      "type": "shell",
+      "command": "make train-test",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run larger FLORES train/test",
+      "type": "shell",
+      "command": "make train-test-large",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run 40k FLORES train/test",
+      "type": "shell",
+      "command": "make train-test-40k",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run 200k FLORES train/test",
+      "type": "shell",
+      "command": "make train-test-200k",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run tests",
+      "type": "shell",
+      "command": "make test",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

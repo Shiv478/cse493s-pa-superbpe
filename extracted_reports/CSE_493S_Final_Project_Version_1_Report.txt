@@ -1,0 +1,144 @@
+
+
+--- PAGE 1 ---
+Parity-Aware SuperBPE: Reducing Cross-Lingual Compression
+Disparities in Two-Stage Tokenizers
+Chendur Jayavelu, Shiv Vinodshankar, Dhruti Vadlamudi
+Paul G. Allen School of Computer Science & Engineering, University of Washington
+{chendurj, shivvin, dhrutiv}@cs.washington.edu
+1 Introduction
+Byte-pair encoding (BPE) tokenizers are trained by maximizing global compression on a training corpus. When that
+corpus is dominated by one language — as virtually every web-scale pretraining mix is by English — the resulting
+vocabulary compresses the majority language efficiently and fragments under-represented languages into far more tokens
+per character. Petrov et al. (2023) and Ahia et al. (2023) document max/min disparities of 5–15× in tokens-per-character
+across languages for production tokenizers (e.g. GPT-2 on our own FLORES-200 measurement has a Gini of 0.348 and
+a max/min of 9.6×). This disparity is not merely cosmetic: it inflates inference cost, shrinks effective context windows,
+and degrades downstream task performance for the affected languages.
+SuperBPE(Liu et al., 2024) extends BPE with a two-stage curriculum: stage 1 applies a GPT-4-style regex pre-
+tokenizer that splits on whitespace and Unicode category boundaries; stage 2 “lifts whitespace” by dropping the
+whitespace constraint from the regex and learning additional merges that can cross word boundaries. SuperBPE
+achieves substantially better English compression than vanilla BPE at the same vocabulary size, but does so using the
+same global-frequency merge-selection rule as BPE, and its evaluation is English-centric. The interaction between
+SuperBPE’s whitespace-lifting and multilingual disparity has not been studied.
+Parity-aware BPE(Foroutan et al., 2024) modifies the merge-selection rule itself: at each step, identify the language
+with the worst current compression and select the merge that most reduces that language’s symbol count. The vendored
+implementation (parity_aware_bpe) supports continuation from preloaded merges, which we exploit below.
+Our workcomposes these two ideas. We hypothesize that SuperBPE’s English compression gains widen the cross-
+lingual gap, and that applying parity-aware merge selectionwithin each of SuperBPE’s two stagescan close the gap
+while preserving most of the compression benefit. This Milestone 1 (V1) report focuses on the first half of that claim —
+characterizing the disparity vanilla SuperBPE produces relative to vanilla BPE — and on validating the implementation
+that the remaining hypotheses will use. We refer to our combined method asPA-SuperBPE.
+2 Scope of the Project
+This is original research that builds on two existing code bases (SuperBPE and parity-aware BPE) and tests three
+falsifiable hypotheses about how tokenizer training objectives interact with multilingual compression disparity. The
+disparity metric throughout is theGini coefficient over per-language mean tokens-per-character (Unicode code
+points), measured on the FLORES-200devtest split (1,012 multi-parallel sentences). We also report the per-language
+max/min ratio for interpretability. Lower Gini denotes more equitable compression across languages.
+2.1 Addressed Hypotheses
+1. H1 (V1 target).At matched vocabulary size, vanilla SuperBPE produces a strictly larger Gini over per-
+language tokens-per-character than vanilla BPE trained on the same corpus. Concretely: at vocabulary sizes
+40k and 200k, both tokenizers trained on the same 5–10 GB OLMo-2 Mix subsample, Gini(SuperBP E)>
+Gini(BP E)on FLORES-200 devtest across our 10-language evaluation set.
+2. H2 (post-V1).PA-SuperBPE simultaneously (a) preserves SuperBPE’s English compression gain over BPE
+within ∆(tokens−per−char eng_Latn)≤0.05 , and (b) reduces the cross-lingual Gini belowbothvanilla
+SuperBPE and vanilla BPE at the same vocabulary size.
+CSE 599 , Project Report.
+
+--- PAGE 2 ---
+3. H3 (post-V1).A small ( ∼150M-parameter) language model pretrained on 2–5 B tokens of the OLMo-2
+Mix using a PA-SuperBPE tokenizer achieves lower per-language FLORES-200 perplexity and higher XNLI
+accuracy on under-represented languages than the same architecture trained with a vanilla SuperBPE tokenizer
+of equal vocabulary size, without a statistically significant degradation on English.
+V1 (this report) addresses H1 and ships the PA-SuperBPE training pipeline that H2 and H3 will consume; H2 and
+H3 are slated for the final report. A known structural limitation, raised mid-design and now scoped as a follow-up
+ablation, is that SuperBPE’s stage-1 regex matches pure CJK runs as a single pretoken, so PA-SuperBPE’s parity-aware
+merge selection cannot create stage-2 cross-pretoken merges that do not already have a stage-1 boundary to lift. A
+language-conditional stage-1 pretokenizer is planned as an additional arm in the H3 phase.
+3 Methodology
+3.1 Algorithm: PA-SuperBPE
+PA-SuperBPE composes SuperBPE’s two-stage curriculum with parity-aware merge selection. Both stages use the
+parity-aware learner of Foroutan et al.; the stages differ only in their pre-tokenizer and a stage-2-only merge filter.
+Pre-tokenization.We reproduce SuperBPE’s exact HuggingFace pipeline, Split(Regex(...),
+behavior="isolated") + ByteLevel(use_regex=False), with two different regexes:
+• Stage 1: GPT-4-style regex that splits on whitespace and Unicode category boundaries (no token crosses
+whitespace).
+• Stage 2: looser regex that drops the whitespace boundary, allowing merges that span multiple whitespace-
+segmented words.
+Because the upstream parity-aware learner only shipswhitespace andbytelevel pre-tokenizers, we run SuperBPE’s
+pipeline ourselves in Python and feed the resulting pretoken frequency dictionaries to the learner via its –dict-input
+interface. This required no modifications to either vendored repository.
+Merge selection.At each training step, given per-language pair-count vectors ct[(a, b)]∈Z L and per-language
+remaining symbol countsℓ t[l]on a parity dev set, the learner picks
+l⋆
+t = arg max
+l
+ℓt[l],(a ⋆, b⋆)t = arg max
+(a,b)
+ct[(a, b)][l⋆
+t ],
+i.e. the merge that most reduces the symbol count of the currently worst-compressed language. Both pair counts and
+remaining-length vectors are updated in place after each merge. We use Foroutan’sbase variant; we hold awindow
+variant in reserve in case base produces degenerate behavior on any single language.
+Parity dev set.The per-language symbol counts ℓt[l] are computed over the FLORES-200 dev split (997 multi-
+parallel sentences, disjoint from our devtest evaluation split). Parity is measured on Unicode code points rather
+than UTF-8 bytes, since byte counts triple-charge non-Latin scripts and would obscure the disparity we are trying to
+characterize.
+Stage transition.Stage 1 emits a merges.txt. Stage 2 invokes the same learner with–preload merges.txtand
+the stage-2 pretokenizer, which replays the stage-1 merges over the stage-2-segmented corpus and then continues
+with parity-aware selection until the total vocabulary is reached. We additionally enforce SuperBPE’s stage-2 filters:
+candidate merges that produce a token containing:˙G, or that span more than four˙G-words, are vetoed and re-selected.
+These filters apply only in stage 2 (in stage 1 they are vacuous because the regex disallows whitespace inside pretokens).
+We default Foroutan’s–global-merges(a global-frequency warmup knob) to 0 in both stages; sweeping it is a
+deferred V2 study.
+3.2 Implementation
+The pipeline lives inpa_superbpe/ (3 Python modules totalling ∼260 lines): pretokenize.py (SuperBPE-regex
+pretokenizer → per-language dict files), learner.py (wrapper that injects the stage-2 :˙G/4-word filter into the
+parity-aware learner’s inner loop), andpipeline.py (stage 1 → stage 2 → HF tokenizer assembly). Vendored code
+in vendor/superbpe/ and vendor/parity-aware-bpe/ is unmodified; the final tokenizer is assembled into a
+2
+
+--- PAGE 3 ---
+HuggingFacePreTrainedTokenizerFast that ships SuperBPE’s stage-2 pretokenizer for inference, so it drops into
+any HF training stack unchanged. We also vendor BoundlessBPE (Schmidt et al., 2025) for a future comparison arm; it
+is not used in V1.
+3.3 Data
+Tokenizer training (full).A 5–10 GB subsample of the OLMo-2 Mix, language-balanced to the extent the source
+allows. The data/prepare_corpus.py script handles streaming, deduplication, and per-language sharding. Baseline
+tokenizers (BPE-40k, BPE-200k, SuperBPE-40k, SuperBPE-200k) and the shared corpus are owned by Shiv; the
+multilingual evaluation harness and PA-SuperBPE implementation are owned by Chendur.
+Tokenizer training (V1 smoke).A 50 MB subsample across {eng_Latn, spa_Latn, zho_Hans, hin_Deva,
+tha_Thai} with vocab sizes 8k stage-1 / 16k total. This was used purely to validate the pipeline end-to-end be-
+fore the full multilingual corpus was ready.
+Evaluation.FLORES-200 devtest split (1,012 parallel sentences) restricted to 10 typologically diverse languages:
+eng_Latn, spa_Latn, deu_Latn, rus_Cyrl, arb_Arab, hin_Deva, zho_Hans, jpn_Jpan, tha_Thai, swh_Latn.
+For H3, we will additionally evaluate FLORES perplexity and XNLI accuracy on the trained LM.
+3.4 Hyperparameters and Experimental Setup
+For each of the four tokenizer methods (BPE, SuperBPE, parity-aware BPE single-stage, PA-SuperBPE), at each of two
+vocabulary sizes (40k, 200k), we train one tokenizer on the shared OLMo-2 subsample and evaluate it on FLORES-200
+devtest. Following SuperBPE’s released configuration, the two-stage methods use an 80k stage-1 / 120k stage-2 split at
+vocab=200k (and a proportional 16k/24k split at vocab=40k). Minimum merge frequency is 2. Parity-aware methods
+usebasevariant,–global-merges 0, and FLORES dev as the parity reference.
+For each tokenizer we compute, per language,total_chars,total_tokens, andmean_tokens_per_char; we then
+compute the Gini coefficient and max/min ratio across the 10-language vector. Comparison tables are emitted by
+eval/aggregate.py.
+For H3 (post-V1), each tokenizer is used to pretrain a ∼150M-parameter decoder-only LM on 2–5 B tokens of the
+OLMo-2 Mix on Lightning AI, evaluated by FLORES per-language perplexity and XNLI accuracy.
+3.5 Code and Compute
+Code.Two open-source repositories are vendored unchanged: SuperBPE (Liu et al.) and parity-aware BPE (Foroutan
+et al.). PA-SuperBPE is approximately 260 lines of new Python ( ∼80 lines pretokenizer, ∼60 lines stage-2 filter
+wrapper, ∼120 lines pipeline orchestration), plus the multilingual evaluation harness (∼300 lines undereval/). The
+HF tokenizer assembly reuses Foroutan’sbuild_vocab_from_mergesutility.
+Compute.Tokenizer training is CPU-bound: the V1 smoke run (50 MB, 16k merges) completes in under 10 minutes
+on a local workstation; the full BPE/SuperBPE/PA-SuperBPE runs at vocab=200k on the 5–10 GB corpus take a few
+hours each on a Lightning AI Studio. Evaluation across 10 languages on FLORES devtest takes seconds per tokenizer.
+Significant compute is required only for H3: pretraining four 150M-parameter LMs on 2–5 B tokens each, budgeted on
+Lightning AI GPUs (rough estimate: 100–200 GPU-hours per LM on a single H100, total ∼0.5–1k GPU-hours across
+the four conditions).
+3.6 V1 Status
+The PA-SuperBPE pipeline is implemented and smoke-validated end-to-end on the 5-language / 50 MB corpus (commits
+6f2bb07 “implement pa_superbpe and smoke-validate end-to-end” and39d1fb6 “Add script to prepare corpus from
+dataset”). The GPT-2 reference Gini on our 10-language FLORES devtest split (0.348, max/min 9.6×) has been
+measured, establishing the baseline that the BPE/SuperBPE/PA-SuperBPE tokenizers will be compared against. The
+remaining V1 work is integration of the BPE and SuperBPE baselines being produced by the teammate handling shared
+infrastructure, after which the H1 comparison can be reported in the final paper.
+3

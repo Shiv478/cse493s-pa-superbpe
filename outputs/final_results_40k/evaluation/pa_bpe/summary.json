@@ -1,0 +1,8 @@
+{
+  "tokenizer": "outputs/run_fast_40k_c2/parity_bpe_40000",
+  "data": "data/processed/flores10_test.jsonl",
+  "languages": 10,
+  "mean_tokens_per_char": 0.4061217549578043,
+  "gini": 0.23700093631606664,
+  "max_min_ratio": 3.559524507247585
+}

@@ -1,0 +1,30 @@
+{
+  "train_data": "data/sample_multilingual.jsonl",
+  "eval_data": "held out from training data",
+  "train_rows": 60,
+  "eval_rows": 20,
+  "languages": [
+    "arb_Arab",
+    "deu_Latn",
+    "eng_Latn",
+    "hin_Deva",
+    "jpn_Jpan",
+    "rus_Cyrl",
+    "spa_Latn",
+    "swh_Latn",
+    "tha_Thai",
+    "zho_Hans"
+  ],
+  "requested": {
+    "stage1_merges": 80,
+    "stage2_merges": 80,
+    "single_stage_total_merges": 160,
+    "min_frequency": 2
+  },
+  "actual_merges": {
+    "bpe": 160,
+    "pa_superbpe": 160,
+    "parity_bpe": 160,
+    "superbpe": 160
+  }
+}

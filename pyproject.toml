@@ -1,0 +1,9 @@
+[project]
+name = "pa-superbpe-fast"
+version = "0.1.0"
+description = "Fast runnable scaffold for parity-aware SuperBPE experiments"
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+

@@ -1,0 +1,24 @@
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+*.pyc
+
+# Local env / OS cruft
+.env
+.DS_Store
+
+# Vendored upstream repos + their venv — clone separately (see README "Setup")
+vendor/
+
+# Large / re-downloadable data — not committed (rebuild with the prep scripts)
+data/
+
+# Outputs: commit only the small final results + docs; keep big dicts/raw runs out
+outputs/*
+!outputs/README.md
+!outputs/final_results_40k/
+!outputs/stage_hybrid_ablation_40k/
+!outputs/prototype_demos/
+outputs/training_input_dicts_floored/
