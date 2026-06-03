@@ -9,14 +9,17 @@ character. This project asks whether **parity-aware** merge selection — at eac
 language that is currently *worst* compressed — produces fairer cross-lingual tokenization, and
 how it interacts with **SuperBPE**'s "superword" merges that cross whitespace.
 
-We compare four tokenizers at a matched **40,000** vocabulary, all trained on the **same**
-English-skewed FineWeb corpus and evaluated on **FLORES-200 devtest** (10 languages × 1,012
-parallel sentences):
+We compare four tokenizers — a 2×2 of *selection rule* × *token type* — at a matched **40,000**
+vocabulary, all trained on the **same** English-skewed FineWeb corpus and evaluated on
+**FLORES-200 devtest** (10 languages × 1,012 parallel sentences):
 
 |                       | global-frequency selection | parity-aware selection |
 |-----------------------|----------------------------|------------------------|
 | **within-word**       | `bpe`                      | `pa_bpe`               |
 | **superword** (crosses whitespace) | `superbpe`    | `pa_superbpe`          |
+
+A follow-up **stage ablation** adds two hybrids that vary *which* stage uses parity
+(`hybrid_A_parity1_global2`, `hybrid_B_global1_parity2`) — **six tokenizers in all**.
 
 ## Headline result
 
@@ -36,6 +39,10 @@ Under BPE, Thai needs **2.27×** the tokens English does for the same sentences;
 this to **~1.02×** (a ~20–25× reduction in Gini), at the cost of some English compression. The
 effect holds for both the within-word and superword rows.
 
+**Best balance:** the stage ablation's **Hybrid A** (parity within-word base → global superwords)
+keeps English fast *and* has the best per-character fairness of all six tokenizers — see
+[`outputs/final_results_40k/RESULTS.md`](outputs/final_results_40k/RESULTS.md).
+
 ## Repository layout
 
 ```
@@ -44,7 +51,7 @@ src/pa_superbpe/   small Python library (incl. the Gini / max-min metric functio
 vendor/       official upstream repos used unmodified: superbpe/ and parity-aware-bpe/
 data/         FineWeb training corpus (data/processed/fineweb_by_lang) + FLORES eval sets
 outputs/      results — see outputs/README.md
-  final_results_40k/   the four tokenizers, their evaluations, and combined tables
+  final_results_40k/   all six tokenizers, their evaluations, and combined tables
   training_input_dicts_floored/   the floored learner-input dicts
   prototype_demos/     small sanity runs (NOT the final results)
 docs/         methodology and runbooks (see docs/fast_learner_methodology.md)
@@ -68,12 +75,12 @@ full bootstrap (uv, Rust, clones, venv). Data is likewise re-created with the pr
 
 ## How the results were produced
 
-The four tokenizers are all trained by one **validated fast learner**
+All six tokenizers are trained by one **validated fast learner**
 ([scripts/fast_parity_learn_bpe.py](scripts/fast_parity_learn_bpe.py)) — a ~600× faster
 reimplementation that is **byte-identical** to the reference parity-aware BPE learner, and whose
 global mode is byte-identical to an independent textbook BPE
 ([scripts/verify_global_is_standard_bpe.py](scripts/verify_global_is_standard_bpe.py)). Same
-engine + same corpus for all four ⇒ differences come only from the method. See
+engine + same corpus for all six ⇒ differences come only from the method. See
 [docs/fast_learner_methodology.md](docs/fast_learner_methodology.md).
 
 Pipeline (uses the SuperBPE venv `vendor/superbpe/.venv/bin/python`, denoted `$PY`):

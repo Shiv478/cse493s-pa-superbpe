@@ -2,7 +2,7 @@
 
 > **TL;DR.** On an English-heavy corpus, standard **BPE makes Thai cost 2.27× more tokens than English for the same sentence.** Parity-aware merge selection cuts that gap to **~1.02×** (about a 25× drop in inequality). The catch: full parity does this by giving up English's compression. But if you apply parity **only in the within-word stage** and let global "superwords" do the rest (**Hybrid A**), you keep English fast **and** get the fairest tokenizer per character. **The fairness–compression trade-off is controllable, not fundamental.**
 
-*All numbers come from `outputs/final_results_40k/` and `outputs/stage_hybrid_ablation_40k/` and are reproducible with the scripts in §11.*
+*All numbers come from `outputs/final_results_40k/` (all six tokenizers) and are reproducible with the scripts in §11.*
 
 **Contents:** 1. Problem · 2. Setup · 3. Methods · 4. Results · 5. Per-language cost · 6. Superword check · 7. Findings · 8. Hypotheses · 9. The English skew · 10. Limitations · 11. Reproduce
 
@@ -154,6 +154,7 @@ The skew is a deliberate, realistic choice. It changes the **magnitudes** but no
 
 - One vocabulary size (**40k**); 200k not run.
 - One corpus composition (**50% English**); a sweep would test robustness (§9).
+- Training dicts are frequency-floored to count ≥ 2 (drop once-only pretokens): −2.4% of stage-1 token mass but −31% of the sparser stage-2 superword mass. All six tokenizers share the same floored data, so the comparison stays controlled.
 - **No downstream LM** (H3) — gains shown are intrinsic (token counts), not yet model quality.
 - Baselines use the validated fast learner (byte-identical to the reference learner and to textbook BPE), not the official Rust SuperBPE binary — absolute numbers may differ slightly, but the *relative* comparison is sound (shared engine + corpus).
 - Spaceless scripts (CJK/Thai) can only be helped in the within-word stage; the superword stage's cross-space benefit doesn't reach them.
@@ -169,7 +170,7 @@ The skew is a deliberate, realistic choice. It changes the **magnitudes** but no
 | pretokenize → floor | `pretokenize_for_parity.py`, `floor_dicts.py` | `outputs/training_input_dicts_floored/` |
 | BPE + SuperBPE | `run_baselines_fast_40k.sh` | `outputs/final_results_40k/` |
 | PA-BPE + PA-SuperBPE | `train_parity_by_lang_40k.sh` | `outputs/final_results_40k/` |
-| Hybrid A + B | `run_stage_hybrids_40k.sh` | `outputs/stage_hybrid_ablation_40k/` |
+| Hybrid A + B | `run_stage_hybrids_40k.sh` (or recipes `5_*.sh`, `6_*.sh`) | `outputs/final_results_40k/` |
 | combined tables | `make_results_summary.py` | `*_summary.csv` |
 | equivalence proofs | `validate_fast_learner.py`, `verify_global_is_standard_bpe.py` | byte-identity checks |
 

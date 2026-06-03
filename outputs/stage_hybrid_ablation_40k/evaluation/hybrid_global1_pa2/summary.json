@@ -1,8 +1,0 @@
-{
-  "tokenizer": "/teamspace/studios/this_studio/2026-05-28/files-mentioned-by-the-user-cse/outputs/stage_hybrid_ablation_40k/tokenizers/hybrid_global1_pa2",
-  "data": "/teamspace/studios/this_studio/2026-05-28/files-mentioned-by-the-user-cse/data/processed/flores10_test.jsonl",
-  "languages": 10,
-  "mean_tokens_per_char": 0.4275574561208358,
-  "gini": 0.2555587248579979,
-  "max_min_ratio": 4.184790919308318
-}

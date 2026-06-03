@@ -1,0 +1,8 @@
+{
+  "tokenizer": "outputs/final_results_40k/tokenizers/hybrid_A_parity1_global2",
+  "data": "data/processed/flores10_test.jsonl",
+  "languages": 10,
+  "mean_tokens_per_char": 0.40886774646819346,
+  "gini": 0.23037865363029766,
+  "max_min_ratio": 3.2974838483385
+}

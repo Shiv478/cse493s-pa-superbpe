@@ -40,11 +40,20 @@ The proposal and V1 report require:
 | Metric computation | Present |
 | Official SuperBPE repo | Present in `vendor/superbpe/` |
 | Official parity-aware BPE repo | Present in `vendor/parity-aware-bpe/` |
-| 40k/200k command targets | Present: `make train-test-40k`, `make train-test-200k` |
+| 40k build commands | Present: per-tokenizer recipes in `scripts/tokenizer_recipes/` + `make results` |
 | HF tokenizer evaluator | Present: `scripts/evaluate_hf_tokenizer.py` |
 | Per-language text export for official parity repo | Present: `scripts/export_language_texts.py` |
 | SuperBPE regex + ByteLevel dict pretokenization wrapper | Present: `scripts/pretokenize_for_parity.py` |
 | PA-SuperBPE stage-2 colon/4-word filter wrapper | Present: `scripts/parity_aware_filtered_learn_bpe.py` |
+
+## Update — what the final runs actually did
+
+The reported **40k** results were produced by a validated **fast** parity learner
+(`scripts/fast_parity_learn_bpe.py`), proven byte-identical to the reference parity learner and,
+in global mode, to textbook BPE (see `docs/fast_learner_methodology.md` and
+`scripts/verify_global_is_standard_bpe.py`). The completed deliverable is the **six-tokenizer**
+40k comparison in `outputs/final_results_40k/` (the four-method 2×2 plus two stage hybrids).
+**200k** and the **H3** language-model study are deferred to future work.
 
 ## What Is Still Not Exact
 

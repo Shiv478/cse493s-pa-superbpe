@@ -1,5 +1,7 @@
 # One-Week Finish Plan
 
+> Historical planning doc. For the final results and write-up, see `paper/findings.md` and `outputs/final_results_40k/`.
+
 ## Day 1
 
 - Run `make setup`, `make test`, and `make smoke`.

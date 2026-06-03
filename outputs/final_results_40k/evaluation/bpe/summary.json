@@ -1,6 +1,6 @@
 {
-  "tokenizer": "/teamspace/studios/this_studio/2026-05-28/files-mentioned-by-the-user-cse/outputs/run_fast_40k_c2/baseline/bpe_40000",
-  "data": "/teamspace/studios/this_studio/2026-05-28/files-mentioned-by-the-user-cse/data/processed/flores10_test.jsonl",
+  "tokenizer": "outputs/final_results_40k/tokenizers/bpe",
+  "data": "data/processed/flores10_test.jsonl",
   "languages": 10,
   "mean_tokens_per_char": 0.4560571447633607,
   "gini": 0.30625403448064437,

@@ -1,34 +1,41 @@
 from __future__ import annotations
 """Assemble the combined 40k results from the per-method evaluation outputs.
 
-Reads outputs/final_results_40k/evaluation/<method>/{summary.json,
-compression_by_language.csv} for the four methods and writes:
+Reads outputs/final_results_40k/evaluation/<method>/compression_by_language.csv
+for all six tokenizers and writes:
   - results_summary.csv          one row per method, both metric families
   - per_language_compression.csv per-language tokens & tokens/char, all methods
 
 Two metric families are reported:
-  * tokens-per-char  : tokens / Unicode-codepoint  (the original disparity metric)
+  * tokens-per-char  : tokens / Unicode-codepoint  (a compression measure, distorted across scripts)
   * token-count      : tokens to encode the SAME parallel FLORES content
                        (canonical cross-lingual fairness metric on parallel data)
 Lower Gini / max-min = fairer. Run with the repo venv (no third-party deps needed).
 """
 import csv
-import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EVAL = ROOT / "outputs" / "final_results_40k" / "evaluation"
 OUT = ROOT / "outputs" / "final_results_40k"
-METHODS = ["bpe", "superbpe", "pa_bpe", "pa_superbpe"]
-LABEL = {"bpe": "BPE", "superbpe": "SuperBPE", "pa_bpe": "PA-BPE", "pa_superbpe": "PA-SuperBPE"}
+
+# (label, eval-dir / short-key, stage-1 rule, stage-2 rule)
+METHODS = [
+    ("BPE",                         "bpe",                      "-",      "-"),
+    ("SuperBPE",                    "superbpe",                 "global", "global"),
+    ("PA-BPE",                      "pa_bpe",                   "parity", "-"),
+    ("PA-SuperBPE",                 "pa_superbpe",              "parity", "parity"),
+    ("Hybrid A (parity1->global2)", "hybrid_A_parity1_global2", "parity", "global"),
+    ("Hybrid B (global1->parity2)", "hybrid_B_global1_parity2", "global", "parity"),
+]
+# short column key for the per-language table
+SHORT = {"hybrid_A_parity1_global2": "hybrid_A", "hybrid_B_global1_parity2": "hybrid_B"}
 
 
 def gini(values):
     xs = sorted(v for v in values if v >= 0)
     n, s = len(xs), sum(xs)
-    if not n or s == 0:
-        return 0.0
-    return sum((2 * (i + 1) - n - 1) * v for i, v in enumerate(xs)) / (n * s)
+    return sum((2 * (i + 1) - n - 1) * v for i, v in enumerate(xs)) / (n * s) if n and s else 0.0
 
 
 def max_min(values):
@@ -36,9 +43,9 @@ def max_min(values):
     return (max(pos) / min(pos)) if pos else 0.0
 
 
-def load(method):
-    rows = list(csv.DictReader((EVAL / method / "compression_by_language.csv").open()))
-    by_lang = {
+def load(key):
+    rows = list(csv.DictReader((EVAL / key / "compression_by_language.csv").open()))
+    return {
         r["language"]: {
             "chars": int(r["total_chars"]),
             "tokens": int(r["total_tokens"]),
@@ -46,56 +53,54 @@ def load(method):
         }
         for r in rows
     }
-    return by_lang
 
 
 def main():
-    data = {m: load(m) for m in METHODS}
+    data = {key: load(key) for _, key, _, _ in METHODS}
     langs = sorted(next(iter(data.values())).keys())
 
     # ---- results_summary.csv ----
-    summ_path = OUT / "results_summary.csv"
-    with summ_path.open("w", newline="") as fh:
+    with (OUT / "results_summary.csv").open("w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow([
-            "method", "mean_tokens_per_char",
+            "method", "stage1", "stage2", "mean_tokens_per_char",
             "gini_tokens_per_char", "maxmin_tokens_per_char",
             "gini_token_count", "maxmin_token_count",
+            "eng_tokens", "eng_tokens_per_char",
         ])
-        for m in METHODS:
-            tpc = [data[m][l]["tpc"] for l in langs]
-            tok = [data[m][l]["tokens"] for l in langs]
+        for label, key, s1, s2 in METHODS:
+            tpc = [data[key][l]["tpc"] for l in langs]
+            tok = [data[key][l]["tokens"] for l in langs]
             w.writerow([
-                LABEL[m],
-                round(sum(tpc) / len(tpc), 4),
+                label, s1, s2, round(sum(tpc) / len(tpc), 4),
                 round(gini(tpc), 4), round(max_min(tpc), 3),
                 round(gini(tok), 4), round(max_min(tok), 3),
+                data[key]["eng_Latn"]["tokens"], round(data[key]["eng_Latn"]["tpc"], 4),
             ])
 
     # ---- per_language_compression.csv ----
-    perlang_path = OUT / "per_language_compression.csv"
-    with perlang_path.open("w", newline="") as fh:
+    with (OUT / "per_language_compression.csv").open("w", newline="") as fh:
         w = csv.writer(fh)
         header = ["language", "total_chars"]
-        for m in METHODS:
-            header += [f"{m}_tokens", f"{m}_tokens_per_char"]
+        for _, key, _, _ in METHODS:
+            col = SHORT.get(key, key)
+            header += [f"{col}_tokens", f"{col}_tokens_per_char"]
         w.writerow(header)
         for l in langs:
-            row = [l, data[METHODS[0]][l]["chars"]]
-            for m in METHODS:
-                row += [data[m][l]["tokens"], round(data[m][l]["tpc"], 4)]
+            row = [l, data[METHODS[0][1]][l]["chars"]]
+            for _, key, _, _ in METHODS:
+                row += [data[key][l]["tokens"], round(data[key][l]["tpc"], 4)]
             w.writerow(row)
 
-    # ---- console markdown (for RESULTS.md) ----
-    print("Wrote", summ_path.name, "and", perlang_path.name, "\n")
-    print("| Method | mean tok/char | Gini (tok/char) | max/min (tok/char) | "
-          "Gini (token-count) | max/min (token-count) |")
-    print("|---|---:|---:|---:|---:|---:|")
-    for m in METHODS:
-        tpc = [data[m][l]["tpc"] for l in langs]
-        tok = [data[m][l]["tokens"] for l in langs]
-        print(f"| {LABEL[m]} | {sum(tpc)/len(tpc):.4f} | {gini(tpc):.4f} | "
-              f"{max_min(tpc):.3f} | {gini(tok):.4f} | {max_min(tok):.3f} |")
+    # ---- console markdown ----
+    print("Wrote results_summary.csv and per_language_compression.csv\n")
+    print("| Method | s1 | s2 | mean t/c | Gini t/c | Gini tok-count | max/min tok-count | eng t/c |")
+    print("|---|---|---|---:|---:|---:|---:|---:|")
+    for label, key, s1, s2 in METHODS:
+        tpc = [data[key][l]["tpc"] for l in langs]
+        tok = [data[key][l]["tokens"] for l in langs]
+        print(f"| {label} | {s1} | {s2} | {sum(tpc)/len(tpc):.4f} | {gini(tpc):.4f} | "
+              f"{gini(tok):.4f} | {max_min(tok):.3f} | {data[key]['eng_Latn']['tpc']:.4f} |")
 
 
 if __name__ == "__main__":

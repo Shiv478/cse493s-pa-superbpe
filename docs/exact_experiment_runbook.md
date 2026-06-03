@@ -9,7 +9,7 @@ SuperBPE requires a separate environment because it uses a custom Hugging Face `
 Recommended:
 
 ```bash
-cd /Users/shivvinodshankar/Documents/Codex/2026-05-28/files-mentioned-by-the-user-cse/vendor/superbpe
+cd vendor/superbpe   # from the repo root
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -47,7 +47,7 @@ data/processed/fineweb_by_lang/spa_Latn.txt
 ...
 ```
 
-The official SuperBPE README points to `FineWeb (see scripts/prepare_fineweb_language_shards.py)` as its tokenizer-training data source.
+The official SuperBPE README trains on an OLMo-2 sample; this project instead uses an English-skewed FineWeb corpus, built per-language by `scripts/prepare_fineweb_language_shards.py`.
 
 For a valid four-tokenizer comparison, the concatenation of those per-language files is the shared training corpus. Train BPE and SuperBPE from the same directory that PA-BPE and PA-SuperBPE use for their per-language pair counts. Do not train the baselines on raw FineWeb files while training PA methods on a different language-sharded subset.
 

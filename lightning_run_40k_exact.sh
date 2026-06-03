@@ -21,7 +21,7 @@ set -euo pipefail
 #                               # (a floor), not a cap: all four tokenizers train
 #                               # on the full per-language corpus you stage.
 #   RAYON_NUM_THREADS=16        # lower to 8/4 if the SuperBPE stage-2 job is killed
-#   OUTPUT_ROOT=outputs/lightning_40k_5gb
+#   OUTPUT_ROOT=outputs/run_40k
 #   RUN_PARITY=1                # trains PA-BPE and PA-SuperBPE after BPE/SuperBPE
 #   PARITY_TRAIN_DIR=data/processed/fineweb_by_lang
 
@@ -32,7 +32,7 @@ NUM_BYTES="${NUM_BYTES:-5000000000}"
 VOCAB_SIZE="${VOCAB_SIZE:-40000}"
 STAGE1_VOCAB_SIZE="${STAGE1_VOCAB_SIZE:-16000}"
 RAYON_NUM_THREADS="${RAYON_NUM_THREADS:-16}"
-OUTPUT_ROOT="${OUTPUT_ROOT:-outputs/lightning_40k_5gb}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-outputs/run_40k}"
 RUN_PARITY="${RUN_PARITY:-1}"
 SUPERBPE_MIN_FREQUENCY="${SUPERBPE_MIN_FREQUENCY:-2}"
 PARITY_TRAIN_DIR="${PARITY_TRAIN_DIR:-data/processed/fineweb_by_lang}"
